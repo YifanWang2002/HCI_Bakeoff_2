@@ -22,9 +22,10 @@ float logoZ = 50f;
 float logoRotation = 0;
 
 // added things
-int DOUBLECLICK_THRESHOLD = 500;
+int DOUBLECLICK_THRESHOLD = 300;
 int prevClickTime = 0;
 int clickCount = 0;
+boolean initState = true;
 boolean drawMode = false;
 boolean maybeDoubleclick = false;
 
@@ -44,6 +45,7 @@ private class Destination
 ArrayList<Destination> destinations = new ArrayList<Destination>();
 
 void setup() {
+  //fullScreen();
   size(1000, 800);  
   rectMode(CENTER);
   textFont(createFont("Arial", inchToPix(.3f))); //sets the font to Arial that is 0.3" tall
@@ -70,6 +72,7 @@ void setup() {
 void draw() {
   background(40); //background is dark grey
   noStroke();
+  rectMode(CENTER);
   //fill(255,0,0);
   //rect(width/2,height/2, inchToPix(1f), inchToPix(1f));
   
@@ -102,11 +105,16 @@ void draw() {
   }
 
   //===========DRAW LOGO SQUARE=================
-  maybeDoubleclick = millis() - prevClickTime < DOUBLECLICK_THRESHOLD;
-  if (!maybeDoubleclick) {
+  maybeDoubleclick = maybeDoubleclick && (millis() - prevClickTime < DOUBLECLICK_THRESHOLD);
+  if (!maybeDoubleclick && !initState) {
     pushMatrix();
     noStroke();
-    fill(60, 60, 192, 192);
+    if (checkForSuccessWithoutPrints()) {
+      fill(0,255,0,192);
+    } else {
+      fill(60,60,192,192);
+    }
+    //fill(60, 60, 192, 192);
     rectMode(CORNER);
     if (drawMode) {
       x2 = mouseX;
@@ -145,9 +153,13 @@ void mouseReleased()
     x1 = mouseX;
     y1 = mouseY;
     drawMode = true;
-  } else if (clickCount == 2 && millis() - prevClickTime < DOUBLECLICK_THRESHOLD) { // doubleclick
+    maybeDoubleclick = true;
+    initState = false;
+  } else if (clickCount == 2 && millis() - prevClickTime < DOUBLECLICK_THRESHOLD && maybeDoubleclick) { // doubleclick
     drawMode = false;
     clickCount = 0;
+    maybeDoubleclick = false;
+    initState = true;
     if (userDone==false && !checkForSuccess()) {
       errorCount++;
     }
@@ -164,12 +176,24 @@ void mouseReleased()
     x2 = mouseX;
     y2 = mouseY;
     clickCount = 0;
+    maybeDoubleclick = false;
   } else {
     // should not be reachable
     drawMode = false;
     clickCount = 0;
+    maybeDoubleclick = false;
   }
   
+}
+
+public boolean checkForSuccessWithoutPrints()
+{
+  Destination d = destinations.get(trialIndex);  
+  boolean closeDist = dist(d.x, d.y, logoX, logoY)<inchToPix(.05f); //has to be within +-0.05"
+  boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
+  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"  
+
+  return closeDist && closeRotation && closeZ;
 }
 
 //probably shouldn't modify this, but email me if you want to for some good reason.
@@ -180,7 +204,7 @@ public boolean checkForSuccess()
   boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
   boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"	
 
-  println("Close Enough Distance: " + closeDist + " (logo X/Y = " + d.x + "/" + d.y + ", destination X/Y = " + logoX + "/" + logoY +")");
+  println("Close Enough Distance: " + closeDist + " (destination X/Y = " + d.x + "/" + d.y + ", logo X/Y = " + logoX + "/" + logoY +")");
   println("Close Enough Rotation: " + closeRotation + " (rot dist="+calculateDifferenceBetweenAngles(d.rotation, logoRotation)+")");
   println("Close Enough Z: " +  closeZ + " (logo Z = " + d.z + ", destination Z = " + logoZ +")");
   println("Close enough all: " + (closeDist && closeRotation && closeZ));
