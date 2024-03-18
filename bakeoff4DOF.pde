@@ -21,6 +21,18 @@ float logoY = 500;
 float logoZ = 50f;
 float logoRotation = 0;
 
+// added things
+int DOUBLECLICK_THRESHOLD = 500;
+int prevClickTime = 0;
+int clickCount = 0;
+boolean drawMode = false;
+boolean maybeDoubleclick = false;
+
+float x1 = 0;
+float y1 = 0;
+float x2 = 0;
+float y2 = 0;
+
 private class Destination
 {
   float x = 0;
@@ -58,8 +70,8 @@ void setup() {
 void draw() {
   background(40); //background is dark grey
   noStroke();
-  fill(255,0,0);
-  rect(width/2,height/2, inchToPix(1f), inchToPix(1f));
+  //fill(255,0,0);
+  //rect(width/2,height/2, inchToPix(1f), inchToPix(1f));
   
   fill(200);
   //shouldn't really modify this printout code unless there is a really good reason to
@@ -90,59 +102,30 @@ void draw() {
   }
 
   //===========DRAW LOGO SQUARE=================
-  pushMatrix();
-  translate(logoX, logoY); //translate draw center to the center oft he logo square
-  rotate(radians(logoRotation)); //rotate using the logo square as the origin
-  noStroke();
-  fill(60, 60, 192, 192);
-  rect(0, 0, logoZ, logoZ);
-  popMatrix();
+  maybeDoubleclick = millis() - prevClickTime < DOUBLECLICK_THRESHOLD;
+  if (!maybeDoubleclick) {
+    pushMatrix();
+    noStroke();
+    fill(60, 60, 192, 192);
+    rectMode(CORNER);
+    if (drawMode) {
+      x2 = mouseX;
+      y2 = mouseY;
+    }
+    translate(x1, y1);
+    logoX = (x1 + x2) / 2;
+    logoY = (y1 + y2) / 2;
+    logoZ = dist(x1, y1, x2, y2) / sqrt(2);
+    float rot = atan2(y2 - y1, x2 - x1) - PI/4;
+    logoRotation = degrees(rot);
+    rotate(rot);
+    square(0, 0, logoZ);
+    popMatrix();
+  }
 
   //===========DRAW EXAMPLE CONTROLS=================
   fill(255);
-  scaffoldControlLogic(); //you are going to want to replace this!
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(.8f));
-}
-
-//my example design for control, which is terrible
-void scaffoldControlLogic()
-{
-  //upper left corner, rotate counterclockwise
-  text("CCW", inchToPix(.4f), inchToPix(.4f));
-  if (mousePressed && dist(0, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoRotation--;
-
-  //upper right corner, rotate clockwise
-  text("CW", width-inchToPix(.4f), inchToPix(.4f));
-  if (mousePressed && dist(width, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoRotation++;
-
-  //lower left corner, decrease Z
-  text("-", inchToPix(.4f), height-inchToPix(.4f));
-  if (mousePressed && dist(0, height, mouseX, mouseY)<inchToPix(.8f))
-    logoZ = constrain(logoZ-inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone!
-
-  //lower right corner, increase Z
-  text("+", width-inchToPix(.4f), height-inchToPix(.4f));
-  if (mousePressed && dist(width, height, mouseX, mouseY)<inchToPix(.8f))
-    logoZ = constrain(logoZ+inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone! 
-
-  //left middle, move left
-  text("left", inchToPix(.4f), height/2);
-  if (mousePressed && dist(0, height/2, mouseX, mouseY)<inchToPix(.8f))
-    logoX-=inchToPix(.02f);
-
-  text("right", width-inchToPix(.4f), height/2);
-  if (mousePressed && dist(width, height/2, mouseX, mouseY)<inchToPix(.8f))
-    logoX+=inchToPix(.02f);
-
-  text("up", width/2, inchToPix(.4f));
-  if (mousePressed && dist(width/2, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoY-=inchToPix(.02f);
-
-  text("down", width/2, height-inchToPix(.4f));
-  if (mousePressed && dist(width/2, height, mouseX, mouseY)<inchToPix(.8f))
-    logoY+=inchToPix(.02f);
 }
 
 void mousePressed()
@@ -156,11 +139,18 @@ void mousePressed()
 
 void mouseReleased()
 {
-  //check to see if user clicked middle of screen within 3 inches, which this code uses as a submit button
-  if (dist(width/2, height/2, mouseX, mouseY)<inchToPix(1f))
-  {
-    if (userDone==false && !checkForSuccess())
+  clickCount++;
+  if (clickCount == 1) { // single click, starting draw mode
+    prevClickTime = millis();
+    x1 = mouseX;
+    y1 = mouseY;
+    drawMode = true;
+  } else if (clickCount == 2 && millis() - prevClickTime < DOUBLECLICK_THRESHOLD) { // doubleclick
+    drawMode = false;
+    clickCount = 0;
+    if (userDone==false && !checkForSuccess()) {
       errorCount++;
+    }
 
     trialIndex++; //and move on to next trial
 
@@ -169,7 +159,17 @@ void mouseReleased()
       userDone = true;
       finishTime = millis();
     }
+  } else if (clickCount == 2) { // second click, ending draw mode
+    drawMode = false;
+    x2 = mouseX;
+    y2 = mouseY;
+    clickCount = 0;
+  } else {
+    // should not be reachable
+    drawMode = false;
+    clickCount = 0;
   }
+  
 }
 
 //probably shouldn't modify this, but email me if you want to for some good reason.
