@@ -25,7 +25,7 @@ float logoRotation = 0;
 int DOUBLECLICK_THRESHOLD = 300;
 int prevClickTime = 0;
 int clickCount = 0;
-enum State { INIT, PREDRAW, DRAW, POSTDRAW }
+enum State { INIT, PREDRAW, DRAW, POSTDRAW, SUBMIT }
 State state = State.INIT;
 boolean maybeDoubleclick = false;
 
@@ -114,7 +114,7 @@ void draw() {
       x1 = maybex1;
       y1 = maybey1;
     } else if (state == State.POSTDRAW) {
-      state = State.INIT;
+      state = State.SUBMIT;
     }
     clickCount = 0;
   }
@@ -168,7 +168,7 @@ void mouseReleased()
       state = State.PREDRAW;
       maybex1 = mouseX;
       maybey1 = mouseY;
-    } else { // second click, ending draw mode
+    } else if (state == State.DRAW) { // second click, ending draw mode
       state = State.POSTDRAW;
       x2 = mouseX;
       y2 = mouseY;
