@@ -106,29 +106,32 @@ void draw() {
 
   //===========DRAW LOGO SQUARE=================
   maybeDoubleclick = maybeDoubleclick && (millis() - prevClickTime < DOUBLECLICK_THRESHOLD);
-  if (!maybeDoubleclick && !initState) {
-    pushMatrix();
-    noStroke();
-    if (checkForSuccessWithoutPrints()) {
-      fill(0,255,0,192);
-    } else {
-      fill(60,60,192,192);
+  if (!maybeDoubleclick) {
+    clickCount = 0;
+    if (!initState) {
+      pushMatrix();
+      noStroke();
+      if (checkForSuccessWithoutPrints()) {
+        fill(0,255,0,192);
+      } else {
+        fill(60,60,192,192);
+      }
+      //fill(60, 60, 192, 192);
+      rectMode(CORNER);
+      if (drawMode) {
+        x2 = mouseX;
+        y2 = mouseY;
+      }
+      translate(x1, y1);
+      logoX = (x1 + x2) / 2;
+      logoY = (y1 + y2) / 2;
+      logoZ = dist(x1, y1, x2, y2) / sqrt(2);
+      float rot = atan2(y2 - y1, x2 - x1) - PI/4;
+      logoRotation = degrees(rot);
+      rotate(rot);
+      square(0, 0, logoZ);
+      popMatrix();
     }
-    //fill(60, 60, 192, 192);
-    rectMode(CORNER);
-    if (drawMode) {
-      x2 = mouseX;
-      y2 = mouseY;
-    }
-    translate(x1, y1);
-    logoX = (x1 + x2) / 2;
-    logoY = (y1 + y2) / 2;
-    logoZ = dist(x1, y1, x2, y2) / sqrt(2);
-    float rot = atan2(y2 - y1, x2 - x1) - PI/4;
-    logoRotation = degrees(rot);
-    rotate(rot);
-    square(0, 0, logoZ);
-    popMatrix();
   }
 
   //===========DRAW EXAMPLE CONTROLS=================
@@ -149,12 +152,18 @@ void mouseReleased()
 {
   clickCount++;
   if (clickCount == 1) { // single click, starting draw mode
-    prevClickTime = millis();
-    x1 = mouseX;
-    y1 = mouseY;
-    drawMode = true;
+    if (!drawMode) {
+      prevClickTime = millis();
+      x1 = mouseX;
+      y1 = mouseY;
+      drawMode = true;
+      initState = false;
+    } else { // second click, ending draw mode
+      drawMode = false;
+      x2 = mouseX;
+      y2 = mouseY;
+    }
     maybeDoubleclick = true;
-    initState = false;
   } else if (clickCount == 2 && millis() - prevClickTime < DOUBLECLICK_THRESHOLD && maybeDoubleclick) { // doubleclick
     drawMode = false;
     clickCount = 0;
@@ -171,19 +180,12 @@ void mouseReleased()
       userDone = true;
       finishTime = millis();
     }
-  } else if (clickCount == 2) { // second click, ending draw mode
-    drawMode = false;
-    x2 = mouseX;
-    y2 = mouseY;
-    clickCount = 0;
-    maybeDoubleclick = false;
-  } else {
+  }else {
     // should not be reachable
     drawMode = false;
     clickCount = 0;
     maybeDoubleclick = false;
   }
-  
 }
 
 public boolean checkForSuccessWithoutPrints()
