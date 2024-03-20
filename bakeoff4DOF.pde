@@ -25,10 +25,12 @@ float logoRotation = 0;
 int DOUBLECLICK_THRESHOLD = 300;
 int prevClickTime = 0;
 int clickCount = 0;
-boolean initState = true;
-boolean drawMode = false;
+enum State { INIT, PREDRAW, DRAW, POSTDRAW }
+State state = State.INIT;
 boolean maybeDoubleclick = false;
 
+float maybex1 = 0;
+float maybey1 = 0;
 float x1 = 0;
 float y1 = 0;
 float x2 = 0;
@@ -107,32 +109,42 @@ void draw() {
   //===========DRAW LOGO SQUARE=================
   maybeDoubleclick = maybeDoubleclick && (millis() - prevClickTime < DOUBLECLICK_THRESHOLD);
   if (!maybeDoubleclick) {
-    clickCount = 0;
-    if (!initState) {
-      pushMatrix();
-      noStroke();
-      if (checkForSuccessWithoutPrints()) {
-        fill(0,255,0,192);
-      } else {
-        fill(60,60,192,192);
-      }
-      //fill(60, 60, 192, 192);
-      rectMode(CORNER);
-      if (drawMode) {
-        x2 = mouseX;
-        y2 = mouseY;
-      }
-      translate(x1, y1);
-      logoX = (x1 + x2) / 2;
-      logoY = (y1 + y2) / 2;
-      logoZ = dist(x1, y1, x2, y2) / sqrt(2);
-      float rot = atan2(y2 - y1, x2 - x1) - PI/4;
-      logoRotation = degrees(rot);
-      rotate(rot);
-      square(0, 0, logoZ);
-      popMatrix();
+    if (state == State.PREDRAW) {
+      state = State.DRAW;
+      x1 = maybex1;
+      y1 = maybey1;
+    } else if (state == State.POSTDRAW) {
+      state = State.INIT;
     }
+    clickCount = 0;
   }
+  
+  pushMatrix();
+  noStroke();
+  if (checkForSuccessWithoutPrints()) {
+    fill(0,255,0,192);
+  } else {
+    fill(60,60,192,192);
+  }
+  rectMode(CORNER);
+  if (state == State.INIT) {
+    x1 = 0;
+    y1 = 0;
+    x2 = 1;
+    y2 = 1;
+  } else if (state == State.DRAW) {
+    x2 = mouseX;
+    y2 = mouseY;
+  }
+  translate(x1, y1);
+  logoX = (x1 + x2) / 2;
+  logoY = (y1 + y2) / 2;
+  logoZ = dist(x1, y1, x2, y2) / sqrt(2);
+  float rot = atan2(y2 - y1, x2 - x1) - PI/4;
+  logoRotation = degrees(rot);
+  rotate(rot);
+  square(0, 0, logoZ);
+  popMatrix();
 
   //===========DRAW EXAMPLE CONTROLS=================
   fill(255);
@@ -152,23 +164,21 @@ void mouseReleased()
 {
   clickCount++;
   if (clickCount == 1) { // single click, starting draw mode
-    if (!drawMode) {
-      prevClickTime = millis();
-      x1 = mouseX;
-      y1 = mouseY;
-      drawMode = true;
-      initState = false;
+    if (state == State.INIT) {
+      state = State.PREDRAW;
+      maybex1 = mouseX;
+      maybey1 = mouseY;
     } else { // second click, ending draw mode
-      drawMode = false;
+      state = State.POSTDRAW;
       x2 = mouseX;
       y2 = mouseY;
     }
+    prevClickTime = millis();
     maybeDoubleclick = true;
   } else if (clickCount == 2 && millis() - prevClickTime < DOUBLECLICK_THRESHOLD && maybeDoubleclick) { // doubleclick
-    drawMode = false;
     clickCount = 0;
     maybeDoubleclick = false;
-    initState = true;
+    state = State.INIT;
     if (userDone==false && !checkForSuccess()) {
       errorCount++;
     }
@@ -180,12 +190,13 @@ void mouseReleased()
       userDone = true;
       finishTime = millis();
     }
-  }else {
+  } else {
     // should not be reachable
-    drawMode = false;
+    state = State.INIT;
     clickCount = 0;
     maybeDoubleclick = false;
   }
+  println(state);
 }
 
 public boolean checkForSuccessWithoutPrints()
