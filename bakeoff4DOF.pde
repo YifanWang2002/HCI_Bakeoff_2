@@ -53,7 +53,7 @@ void setup() {
   rectMode(CENTER); //draw rectangles not from upper left, but from the center outwards
   
   //don't change this! 
-  border = inchToPix(1f); //padding of 1.0 inches
+  border = inchToPix(2f); //padding of 2.0 inches
 
   for (int i=0; i<trialCount; i++) //don't change this! 
   {
