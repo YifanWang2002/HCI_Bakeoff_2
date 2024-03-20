@@ -164,7 +164,7 @@ void mouseReleased()
 {
   clickCount++;
   if (clickCount == 1) { // single click, starting draw mode
-    if (state == State.INIT) {
+    if (state == State.INIT || state == State.SUBMIT) {
       state = State.PREDRAW;
       maybex1 = mouseX;
       maybey1 = mouseY;
@@ -196,7 +196,6 @@ void mouseReleased()
     clickCount = 0;
     maybeDoubleclick = false;
   }
-  println(state);
 }
 
 public boolean checkForSuccessWithoutPrints()
