@@ -22,12 +22,15 @@ float logoZ = 50f;
 float logoRotation = 0;
 
 // added things
-int DOUBLECLICK_THRESHOLD = 500;
+int DOUBLECLICK_THRESHOLD = 300;
 int prevClickTime = 0;
 int clickCount = 0;
-boolean drawMode = false;
+enum State { INIT, PREDRAW, DRAW, POSTDRAW, SUBMIT }
+State state = State.INIT;
 boolean maybeDoubleclick = false;
 
+float maybex1 = 0;
+float maybey1 = 0;
 float x1 = 0;
 float y1 = 0;
 float x2 = 0;
@@ -44,6 +47,7 @@ private class Destination
 ArrayList<Destination> destinations = new ArrayList<Destination>();
 
 void setup() {
+  //fullScreen();
   size(1000, 800);  
   rectMode(CENTER);
   textFont(createFont("Arial", inchToPix(.3f))); //sets the font to Arial that is 0.3" tall
@@ -51,7 +55,7 @@ void setup() {
   rectMode(CENTER); //draw rectangles not from upper left, but from the center outwards
   
   //don't change this! 
-  border = inchToPix(1f); //padding of 1.0 inches
+  border = inchToPix(2f); //padding of 2.0 inches
 
   for (int i=0; i<trialCount; i++) //don't change this! 
   {
@@ -70,6 +74,7 @@ void setup() {
 void draw() {
   background(40); //background is dark grey
   noStroke();
+  rectMode(CENTER);
   //fill(255,0,0);
   //rect(width/2,height/2, inchToPix(1f), inchToPix(1f));
   
@@ -102,26 +107,44 @@ void draw() {
   }
 
   //===========DRAW LOGO SQUARE=================
-  maybeDoubleclick = millis() - prevClickTime < DOUBLECLICK_THRESHOLD;
+  maybeDoubleclick = maybeDoubleclick && (millis() - prevClickTime < DOUBLECLICK_THRESHOLD);
   if (!maybeDoubleclick) {
-    pushMatrix();
-    noStroke();
-    fill(60, 60, 192, 192);
-    rectMode(CORNER);
-    if (drawMode) {
-      x2 = mouseX;
-      y2 = mouseY;
+    if (state == State.PREDRAW) {
+      state = State.DRAW;
+      x1 = maybex1;
+      y1 = maybey1;
+    } else if (state == State.POSTDRAW) {
+      state = State.SUBMIT;
     }
-    translate(x1, y1);
-    logoX = (x1 + x2) / 2;
-    logoY = (y1 + y2) / 2;
-    logoZ = dist(x1, y1, x2, y2) / sqrt(2);
-    float rot = atan2(y2 - y1, x2 - x1) - PI/4;
-    logoRotation = degrees(rot);
-    rotate(rot);
-    square(0, 0, logoZ);
-    popMatrix();
+    clickCount = 0;
   }
+  
+  pushMatrix();
+  noStroke();
+  if (checkForSuccessWithoutPrints()) {
+    fill(0,255,0,192);
+  } else {
+    fill(60,60,192,192);
+  }
+  rectMode(CORNER);
+  if (state == State.INIT) {
+    x1 = 0;
+    y1 = 0;
+    x2 = 1;
+    y2 = 1;
+  } else if (state == State.DRAW) {
+    x2 = mouseX;
+    y2 = mouseY;
+  }
+  translate(x1, y1);
+  logoX = (x1 + x2) / 2;
+  logoY = (y1 + y2) / 2;
+  logoZ = dist(x1, y1, x2, y2) / sqrt(2);
+  float rot = atan2(y2 - y1, x2 - x1) - PI/4;
+  logoRotation = degrees(rot);
+  rotate(rot);
+  square(0, 0, logoZ);
+  popMatrix();
 
   //===========DRAW EXAMPLE CONTROLS=================
   fill(255);
@@ -141,13 +164,21 @@ void mouseReleased()
 {
   clickCount++;
   if (clickCount == 1) { // single click, starting draw mode
+    if (state == State.INIT || state == State.SUBMIT) {
+      state = State.PREDRAW;
+      maybex1 = mouseX;
+      maybey1 = mouseY;
+    } else if (state == State.DRAW) { // second click, ending draw mode
+      state = State.POSTDRAW;
+      x2 = mouseX;
+      y2 = mouseY;
+    }
     prevClickTime = millis();
-    x1 = mouseX;
-    y1 = mouseY;
-    drawMode = true;
-  } else if (clickCount == 2 && millis() - prevClickTime < DOUBLECLICK_THRESHOLD) { // doubleclick
-    drawMode = false;
+    maybeDoubleclick = true;
+  } else if (clickCount == 2 && millis() - prevClickTime < DOUBLECLICK_THRESHOLD && maybeDoubleclick) { // doubleclick
     clickCount = 0;
+    maybeDoubleclick = false;
+    state = State.INIT;
     if (userDone==false && !checkForSuccess()) {
       errorCount++;
     }
@@ -159,17 +190,22 @@ void mouseReleased()
       userDone = true;
       finishTime = millis();
     }
-  } else if (clickCount == 2) { // second click, ending draw mode
-    drawMode = false;
-    x2 = mouseX;
-    y2 = mouseY;
-    clickCount = 0;
   } else {
     // should not be reachable
-    drawMode = false;
+    state = State.INIT;
     clickCount = 0;
+    maybeDoubleclick = false;
   }
-  
+}
+
+public boolean checkForSuccessWithoutPrints()
+{
+  Destination d = destinations.get(trialIndex);  
+  boolean closeDist = dist(d.x, d.y, logoX, logoY)<inchToPix(.05f); //has to be within +-0.05"
+  boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
+  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"  
+
+  return closeDist && closeRotation && closeZ;
 }
 
 //probably shouldn't modify this, but email me if you want to for some good reason.
@@ -180,7 +216,7 @@ public boolean checkForSuccess()
   boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
   boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"	
 
-  println("Close Enough Distance: " + closeDist + " (logo X/Y = " + d.x + "/" + d.y + ", destination X/Y = " + logoX + "/" + logoY +")");
+  println("Close Enough Distance: " + closeDist + " (destination X/Y = " + d.x + "/" + d.y + ", logo X/Y = " + logoX + "/" + logoY +")");
   println("Close Enough Rotation: " + closeRotation + " (rot dist="+calculateDifferenceBetweenAngles(d.rotation, logoRotation)+")");
   println("Close Enough Z: " +  closeZ + " (logo Z = " + d.z + ", destination Z = " + logoZ +")");
   println("Close enough all: " + (closeDist && closeRotation && closeZ));
