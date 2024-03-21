@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.Collections;
 
+
+
 //these are variables you should probably leave alone
 int index = 0; //starts at zero-ith trial
 float border = 0; //some padding from the sides of window, set later
@@ -28,6 +30,11 @@ int clickCount = 0;
 enum State { INIT, PREDRAW, DRAW, POSTDRAW, SUBMIT }
 State state = State.INIT;
 boolean maybeDoubleclick = false;
+
+int correctTrials = 0;
+int totalTrialsAttempted = 0;
+int lastUpdateTime = 0; // Tracks the last update time for display
+int updateFrequency = 2000; // Update frequency in milliseconds (2 seconds)
 
 float maybex1 = 0;
 float maybey1 = 0;
@@ -149,7 +156,17 @@ void draw() {
   //===========DRAW EXAMPLE CONTROLS=================
   fill(255);
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(.8f));
+  
+  if (totalTrialsAttempted > 0 && startTime != 0) {
+    // Use current time (millis()) instead of finishTime if the user hasn't finished all trials
+    float currentTime = userDone ? finishTime : millis();
+    float averageTimePerTrial = (currentTime - startTime) / 1000f / totalTrialsAttempted;
+    text("Correctness: " + correctTrials + "/" + totalTrialsAttempted, width / 2, height - inchToPix(.4f) * 2);
+    text("Average Time per Trial: " + averageTimePerTrial + " sec", width / 2, height - inchToPix(.4f));
 }
+}
+
+  
 
 void mousePressed()
 {
@@ -211,10 +228,18 @@ public boolean checkForSuccessWithoutPrints()
 //probably shouldn't modify this, but email me if you want to for some good reason.
 public boolean checkForSuccess()
 {
-  Destination d = destinations.get(trialIndex);	
+  Destination d = destinations.get(trialIndex);  
   boolean closeDist = dist(d.x, d.y, logoX, logoY)<inchToPix(.05f); //has to be within +-0.05"
   boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
-  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"	
+  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"  
+  
+  boolean success = closeDist && closeRotation && closeZ;
+
+  // Increment totalTrialsAttempted and correctTrials if the trial is completed successfully
+  totalTrialsAttempted++;
+  if (success) {
+    correctTrials++;
+  }
 
   println("Close Enough Distance: " + closeDist + " (destination X/Y = " + d.x + "/" + d.y + ", logo X/Y = " + logoX + "/" + logoY +")");
   println("Close Enough Rotation: " + closeRotation + " (rot dist="+calculateDifferenceBetweenAngles(d.rotation, logoRotation)+")");
