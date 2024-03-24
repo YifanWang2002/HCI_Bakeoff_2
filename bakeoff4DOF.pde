@@ -13,6 +13,7 @@ float errorPenalty = 0.5f; //for every error, add this value to mean time
 int startTime = 0; // time starts when the first click is captured
 int finishTime = 0; //records the time of the final click
 boolean userDone = false; //is the user done
+ArrayList<Boolean> trialOutcomes = new ArrayList<Boolean>();
 
 final float screenPPI = 133; //what is the DPI of the screen you are using
 //you can test this by drawing a 72x72 pixel rectangle in code, and then confirming with a ruler it is 1x1 inch. 
@@ -96,21 +97,22 @@ void draw() {
     return;
   }
 
+    
     float progressBarHeight = inchToPix(0.2f); // Height of the progress bar
-    float progressBarY = progressBarHeight / 2 + inchToPix(0.1f); // Position of the progress bar from the bottom
-    float segmentWidth = width / (float) trialCount; // Width of each segment in the progress bar
-  
-    for (int i = 0; i < trialCount; i++) {
-      if (i < trialIndex) {
-        // If the trial has been attempted, determine color based on success or error
-        fill(i < correctTrials ? color(0, 255, 0) : color(255, 0, 0)); // Green for success, red for error
-      } else {
-        // For trials that have not been attempted yet, use a neutral color
-        fill(200, 200, 200);
-      }
-      // Draw each segment of the progress bar
-      rect(i * segmentWidth + segmentWidth / 2, progressBarY, segmentWidth, progressBarHeight);
+  float progressBarY = progressBarHeight / 2 + inchToPix(0.05f); // Position of the progress bar from the bottom
+  float segmentWidth = width / (float) trialCount; // Width of each segment in the progress bar
+
+  for (int i = 0; i < trialCount; i++) {
+    if (i < trialOutcomes.size()) {
+      // If the trial has been attempted, determine color based on success or error
+      fill(trialOutcomes.get(i) ? color(0, 255, 0) : color(255, 0, 0)); // Green for success, red for error
+    } else {
+      // For trials that have not been attempted yet, use a neutral color
+      fill(200, 200, 200);
     }
+    // Draw each segment of the progress bar
+    rect(i * segmentWidth + segmentWidth / 2, progressBarY, segmentWidth - 1, progressBarHeight); // Added a slight gap between segments
+  }
     
   //===========DRAW DESTINATION SQUARES=================
   for (int i=trialIndex; i<trialCount; i++) // reduces over time
@@ -177,7 +179,7 @@ void draw() {
     // Use current time (millis()) instead of finishTime if the user hasn't finished all trials
     float currentTime = userDone ? finishTime : millis();
     float averageTimePerTrial = (currentTime - startTime) / 1000f / totalTrialsAttempted;
-    text("Correctness: " + correctTrials + "/" + totalTrialsAttempted, width / 2, height - inchToPix(.4f) * 2);
+    //text("Correctness: " + correctTrials + "/" + totalTrialsAttempted, width / 2, height - inchToPix(.4f) * 2);
     //text("Average Time per Trial: " + averageTimePerTrial + " sec", width / 2, height - inchToPix(.4f));
 }
 }
@@ -257,6 +259,7 @@ public boolean checkForSuccess()
     correctTrials++;
   }
 
+trialOutcomes.add(success);
   println("Close Enough Distance: " + closeDist + " (destination X/Y = " + d.x + "/" + d.y + ", logo X/Y = " + logoX + "/" + logoY +")");
   println("Close Enough Rotation: " + closeRotation + " (rot dist="+calculateDifferenceBetweenAngles(d.rotation, logoRotation)+")");
   println("Close Enough Z: " +  closeZ + " (logo Z = " + d.z + ", destination Z = " + logoZ +")");
