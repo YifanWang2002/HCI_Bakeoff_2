@@ -170,6 +170,12 @@ void draw() {
   rotate(rot);
   square(0, 0, logoZ);
   popMatrix();
+  
+  if (state == State.DRAW) {
+    cursor(CROSS);
+  } else {
+    cursor(ARROW);
+  }
 
   //===========DRAW EXAMPLE CONTROLS=================
   fill(255);
