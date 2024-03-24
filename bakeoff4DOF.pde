@@ -6,7 +6,7 @@ import java.util.Collections;
 //these are variables you should probably leave alone
 int index = 0; //starts at zero-ith trial
 float border = 0; //some padding from the sides of window, set later
-int trialCount = 12; //this will be set higher for the bakeoff
+int trialCount = 24; //this will be set higher for the bakeoff
 int trialIndex = 0; //what trial are we on
 int errorCount = 0;  //used to keep track of errors
 float errorPenalty = 0.5f; //for every error, add this value to mean time
@@ -96,6 +96,22 @@ void draw() {
     return;
   }
 
+    float progressBarHeight = inchToPix(0.2f); // Height of the progress bar
+    float progressBarY = progressBarHeight / 2 + inchToPix(0.1f); // Position of the progress bar from the bottom
+    float segmentWidth = width / (float) trialCount; // Width of each segment in the progress bar
+  
+    for (int i = 0; i < trialCount; i++) {
+      if (i < trialIndex) {
+        // If the trial has been attempted, determine color based on success or error
+        fill(i < correctTrials ? color(0, 255, 0) : color(255, 0, 0)); // Green for success, red for error
+      } else {
+        // For trials that have not been attempted yet, use a neutral color
+        fill(200, 200, 200);
+      }
+      // Draw each segment of the progress bar
+      rect(i * segmentWidth + segmentWidth / 2, progressBarY, segmentWidth, progressBarHeight);
+    }
+    
   //===========DRAW DESTINATION SQUARES=================
   for (int i=trialIndex; i<trialCount; i++) // reduces over time
   {
@@ -161,9 +177,8 @@ void draw() {
     // Use current time (millis()) instead of finishTime if the user hasn't finished all trials
     float currentTime = userDone ? finishTime : millis();
     float averageTimePerTrial = (currentTime - startTime) / 1000f / totalTrialsAttempted;
-    //text("Correctness: " + correctTrials + "/" + totalTrialsAttempted, width / 2, height - inchToPix(.4f) * 2);
+    text("Correctness: " + correctTrials + "/" + totalTrialsAttempted, width / 2, height - inchToPix(.4f) * 2);
     //text("Average Time per Trial: " + averageTimePerTrial + " sec", width / 2, height - inchToPix(.4f));
-    //text(String.format("Average Time per Trial: %.4f sec", averageTimePerTrial), width / 2, height - inchToPix(.4f));
 }
 }
 
