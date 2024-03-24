@@ -161,9 +161,9 @@ void draw() {
     // Use current time (millis()) instead of finishTime if the user hasn't finished all trials
     float currentTime = userDone ? finishTime : millis();
     float averageTimePerTrial = (currentTime - startTime) / 1000f / totalTrialsAttempted;
-    text("Correctness: " + correctTrials + "/" + totalTrialsAttempted, width / 2, height - inchToPix(.4f) * 2);
+    //text("Correctness: " + correctTrials + "/" + totalTrialsAttempted, width / 2, height - inchToPix(.4f) * 2);
     //text("Average Time per Trial: " + averageTimePerTrial + " sec", width / 2, height - inchToPix(.4f));
-    text(String.format("Average Time per Trial: %.4f sec", averageTimePerTrial), width / 2, height - inchToPix(.4f));
+    //text(String.format("Average Time per Trial: %.4f sec", averageTimePerTrial), width / 2, height - inchToPix(.4f));
 }
 }
 
